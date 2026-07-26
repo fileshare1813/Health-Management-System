@@ -154,6 +154,7 @@ connectDB()
     app.get("/doctors", (req, res) => res.render("doctors"));
     app.get("/my-appointments", (req, res) => res.render("my-appointments"));
     app.get("/admin", (req, res) => res.render("admin"));
+    app.get("/doctor-dashboard", (req, res) => res.render("doctor-dashboard"));
     app.get("/support", (req, res) => res.render("support"));
     
 

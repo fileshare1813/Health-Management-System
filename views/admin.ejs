@@ -116,6 +116,18 @@
               <option value="other">Other</option>
             </select>
           </label>
+          <label>
+            Doctor Username (for login)
+            <input type="text" name="username" required />
+          </label>
+          <label>
+            Doctor Email (for login)
+            <input type="email" name="email" required />
+          </label>
+          <label>
+            Doctor Password (for login)
+            <input type="password" name="password" required minlength="6" />
+          </label>
         </div>
         <br />
         <button type="submit">Add Doctor</button>
@@ -161,7 +173,7 @@
           const result = await response.json();
           if (!response.ok) throw new Error(result.error || "Failed to add doctor");
 
-          feedback.textContent = `Doctor "${result.doctor.name}" added successfully!`;
+          feedback.textContent = `Doctor "${result.doctor.name}" added successfully! Login: ${data.username}`;
           feedback.className = "message success";
           feedback.style.display = "block";
           form.reset();

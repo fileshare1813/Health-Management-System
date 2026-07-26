@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Doctor Dashboard - HMS</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f3f6fb;
+        color: #1c2331;
+      }
+      .container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      .doctor-info {
+        background: #fff;
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+      .doctor-info h2 {
+        margin: 0 0 6px;
+      }
+      .doctor-info p {
+        margin: 4px 0;
+        color: #475569;
+      }
+      .appointment-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+      .appointment-card h3 {
+        margin: 0 0 6px;
+      }
+      .appointment-card p {
+        margin: 3px 0;
+        font-size: 0.9rem;
+        color: #475569;
+      }
+      .appointment-card a {
+        color: #2563eb;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .empty,
+      .blocked {
+        text-align: center;
+        color: #64748b;
+        margin-top: 60px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>My Appointments</h1>
+      <div id="doctorInfo"></div>
+      <div id="list"></div>
+    </div>
+
+    <script>
+      const list = document.getElementById("list");
+      const doctorInfo = document.getElementById("doctorInfo");
+      const token = localStorage.getItem("token");
+      const role = localStorage.getItem("role");
+
+      async function loadAppointments() {
+        if (!token || role !== "doctor") {
+          list.innerHTML =
+            "<p class='blocked'>You must be logged in as a doctor to view this page. <a href='/login'>Login</a></p>";
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/doctors/my-appointments", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await response.json();
+
+          if (!response.ok)
+            throw new Error(data.error || "Failed to load appointments");
+
+          doctorInfo.innerHTML = `
+            <div class="doctor-info">
+              <h2>Dr. ${data.doctor.name}</h2>
+              <p>${data.doctor.specialisation} • ${data.doctor.degree}</p>
+              <p>Rating: ★ ${data.doctor.rating ? data.doctor.rating.toFixed(1) : "No ratings yet"}</p>
+            </div>
+          `;
+
+          renderAppointments(data.appointments || []);
+        } catch (err) {
+          list.innerHTML = `<p class="empty">${err.message}</p>`;
+        }
+      }
+
+      function renderAppointments(appointments) {
+        if (!appointments.length) {
+          list.innerHTML = "<p class='empty'>You have no appointments yet.</p>";
+          return;
+        }
+
+        list.innerHTML = appointments
+          .map(
+            (a) => `
+          <div class="appointment-card">
+            <h3>${a.name}</h3>
+            <p>Email: ${a.email} | Age: ${a.age} | Gender: ${a.gender}</p>
+            <p>Ailment: ${a.ailment}</p>
+            <p>Slot: ${a.bookedSlot}</p>
+            ${
+              a.prescriptions && a.prescriptions.length
+                ? `<p><a href="${a.prescriptions[a.prescriptions.length - 1]}" target="_blank">View Prescription File</a></p>`
+                : ""
+            }
+          </div>
+        `,
+          )
+          .join("");
+      }
+
+      loadAppointments();
+    </script>
+  </body>
+</html>

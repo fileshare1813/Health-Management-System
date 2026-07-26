@@ -46,6 +46,11 @@ const DoctorSchema = new mongoose.Schema(
       ],
       default: [],
     },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      required: false,
+    },
   },
   {
     timestamps: true,
