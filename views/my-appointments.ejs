@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Appointments - HMS</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f3f6fb;
+        color: #1c2331;
+      }
+      .container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      .nav {
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+      }
+      .nav a {
+        color: #2563eb;
+        text-decoration: none;
+        margin-right: 16px;
+        font-weight: 600;
+      }
+      .appointment-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .appointment-card h3 {
+        margin: 0 0 6px;
+      }
+      .appointment-card p {
+        margin: 3px 0;
+        font-size: 0.9rem;
+        color: #475569;
+      }
+      .cancel-btn {
+        padding: 10px 16px;
+        background: #dc2626;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .empty {
+        text-align: center;
+        color: #64748b;
+        margin-top: 60px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="nav">
+        <a href="/patient">Book Appointment</a>
+        <a href="/doctors">Find a Doctor</a>
+        <a href="/support">Support Chat</a>
+      </div>
+      <h1>My Appointments</h1>
+      <div id="list"></div>
+    </div>
+
+    <script>
+      const list = document.getElementById("list");
+      const token = localStorage.getItem("token");
+
+      async function loadAppointments() {
+        if (!token) {
+          list.innerHTML =
+            "<p class='empty'>Please <a href='/login'>login</a> to view your appointments.</p>";
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/patients/my-appointments", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await response.json();
+
+          if (!response.ok)
+            throw new Error(data.error || "Failed to load appointments");
+
+          renderAppointments(data.appointments || []);
+        } catch (err) {
+          list.innerHTML = `<p class="empty">${err.message}</p>`;
+        }
+      }
+
+      function renderAppointments(appointments) {
+        if (!appointments.length) {
+          list.innerHTML = "<p class='empty'>You have no appointments yet.</p>";
+          return;
+        }
+
+        list.innerHTML = appointments
+          .map(
+            (a) => `
+          <div class="appointment-card">
+            <div>
+              <h3>Dr. ${a.doctorChoice ? a.doctorChoice.name : "Unknown"}</h3>
+              <p>${a.doctorChoice ? a.doctorChoice.specialisation : ""}</p>
+              <p>Slot: ${a.bookedSlot}</p>
+              <p>Ailment: ${a.ailment}</p>
+            </div>
+            <button class="cancel-btn" onclick="cancelAppointment('${a._id}')">Cancel</button>
+          </div>
+        `,
+          )
+          .join("");
+      }
+
+      async function cancelAppointment(id) {
+        if (!confirm("Cancel this appointment?")) return;
+
+        try {
+          const response = await fetch("/api/patients/appointments/" + id, {
+            method: "DELETE",
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Failed to cancel");
+
+          loadAppointments();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      loadAppointments();
+    </script>
+  </body>
+</html>

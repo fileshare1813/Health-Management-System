@@ -19,6 +19,11 @@ const UserSchema = new mongoose.Schema(
       required: true,
       minLength: 8,
     },
+    role: {
+      type: String,
+      enum: ["patient", "doctor", "support", "admin"],
+      default: "patient",
+    },
     chatIds: {
       type: [mongoose.Schema.Types.ObjectId],
       ref: "Chat",

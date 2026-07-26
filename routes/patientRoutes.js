@@ -4,9 +4,12 @@ const {
   createPatient,
   bookAppointment,
   uploadPrescription,
+  getMyAppointments,
+  cancelAppointment,
 } = require("../controllers/patientController");
 const validate = require("../utils/validate");
 const upload = require("../middlewares/upload");
+const { authenticate } = require("../middlewares/auth");
 
 const router = express.Router();
 
@@ -27,15 +30,19 @@ router.post(
 
 router.post(
   "/book-appointment",
+  authenticate,
   upload.single("prescription"),
   bookAppointment,
 );
 
-// Upload prescription for an existing patient (multipart/form-data, field name: `prescription`)
 router.post(
   "/:id/upload-prescription",
+  authenticate,
   upload.single("prescription"),
   uploadPrescription,
 );
+
+router.get("/my-appointments", authenticate, getMyAppointments);
+router.delete("/appointments/:id", authenticate, cancelAppointment);
 
 module.exports = router;

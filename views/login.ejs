@@ -132,11 +132,19 @@
           feedback.className = "message success";
           feedback.style.display = "block";
 
+          localStorage.setItem("token", result.token);
           localStorage.setItem("userId", result.userId);
           localStorage.setItem("username", result.username);
           localStorage.setItem("email", result.email);
+          localStorage.setItem("role", result.role);
 
-          setTimeout(() => (window.location.href = "/patient"), 1500);
+          setTimeout(() => {
+            if (result.role === "admin") {
+              window.location.href = "/admin";
+            } else {
+              window.location.href = "/patient";
+            }
+          }, 1500);
         } catch (err) {
           feedback.textContent = err.message;
           feedback.className = "message error";

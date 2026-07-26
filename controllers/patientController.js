@@ -52,6 +52,15 @@ async function bookAppointment(req, res) {
       return res.status(404).json({ error: "Doctor not found" });
     }
 
+    // Prevent double-booking the same slot with the same doctor
+    const existingBooking = await Patient.findOne({ doctorChoice, bookedSlot });
+    if (existingBooking) {
+      return res.status(409).json({
+        error:
+          "This slot is already booked for the selected doctor. Please choose another slot.",
+      });
+    }
+
     const filePath = req.file.path || req.file.secure_url || req.file.url;
     if (!filePath) {
       return res
@@ -76,7 +85,13 @@ async function bookAppointment(req, res) {
     const subject = "Appointment booked successfully";
     const text = `Your appointment is confirmed for ${bookedSlot} with Dr. ${doctor.name}.`;
     const html = `<p>Dear ${patient.name},</p><p>Your appointment has been booked successfully.</p><p><strong>Doctor:</strong> ${doctor.name}</p><p><strong>Slot:</strong> ${bookedSlot}</p><p>Thank you.</p>`;
-    await emailer.sendMail({ to: patient.email, subject, text, html });
+
+    try {
+      await emailer.sendMail({ to: patient.email, subject, text, html });
+    } catch (mailErr) {
+      // Booking should still succeed even if the email fails to send
+      console.error("Email sending failed (appointment still booked):", mailErr.message);
+    }
 
     return res.status(201).json({
       message: "Appointment booked successfully",
@@ -110,4 +125,45 @@ async function uploadPrescription(req, res) {
   }
 }
 
-module.exports = { createPatient, bookAppointment, uploadPrescription };
+async function getMyAppointments(req, res) {
+  try {
+    const email = req.user.email;
+    const appointments = await Patient.find({ email })
+      .populate("doctorChoice", "name specialisation fees")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ appointments });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+async function cancelAppointment(req, res) {
+  try {
+    const { id } = req.params;
+    const patient = await Patient.findById(id);
+
+    if (!patient) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    if (patient.email !== req.user.email) {
+      return res
+        .status(403)
+        .json({ error: "You can only cancel your own appointments" });
+    }
+
+    await Patient.findByIdAndDelete(id);
+    return res.status(200).json({ message: "Appointment cancelled successfully" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = {
+  createPatient,
+  bookAppointment,
+  uploadPrescription,
+  getMyAppointments,
+  cancelAppointment,
+};

@@ -19,6 +19,16 @@
         border-radius: 18px;
         box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
       }
+      .nav {
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+      }
+      .nav a {
+        color: #2563eb;
+        text-decoration: none;
+        margin-right: 16px;
+        font-weight: 600;
+      }
       h1 {
         margin-top: 0;
         font-size: 2rem;
@@ -67,6 +77,11 @@
   </head>
   <body>
     <div class="container">
+      <div class="nav">
+        <a href="/doctors">Find a Doctor</a>
+        <a href="/my-appointments">My Appointments</a>
+        <a href="/support">Support Chat</a>
+      </div>
       <h1>Book an Appointment</h1>
       <form id="appointmentForm" enctype="multipart/form-data">
         <div class="grid">
@@ -106,7 +121,7 @@
               name="doctorChoice"
               id="doctorChoice"
               required
-              placeholder="Enter doctor ObjectId"
+              placeholder="Enter doctor ObjectId or pick from Find a Doctor"
             />
           </label>
           <label>
@@ -139,6 +154,19 @@
       const form = document.getElementById("appointmentForm");
       const feedback = document.getElementById("feedback");
 
+      // Auto-fill doctor ID if navigated here from the "Find a Doctor" page
+      const params = new URLSearchParams(window.location.search);
+      const doctorIdFromQuery = params.get("doctorId");
+      if (doctorIdFromQuery) {
+        document.getElementById("doctorChoice").value = doctorIdFromQuery;
+      }
+
+      // Pre-fill email if already logged in
+      const savedEmail = localStorage.getItem("email");
+      if (savedEmail) {
+        document.getElementById("email").value = savedEmail;
+      }
+
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
@@ -146,10 +174,21 @@
         feedback.textContent = "";
         feedback.className = "message";
 
+        const token = localStorage.getItem("token");
+        if (!token) {
+          feedback.textContent = "Please login first to book an appointment.";
+          feedback.classList.add("error");
+          feedback.style.display = "block";
+          return;
+        }
+
         const formData = new FormData(form);
         try {
           const response = await fetch("/api/patients/book-appointment", {
             method: "POST",
+            headers: {
+              Authorization: "Bearer " + token,
+            },
             body: formData,
           });
 

@@ -3,44 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>HMS</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f3f6fb;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #475569;
+      }
+    </style>
   </head>
   <body>
-    <h1>Simple Chat</h1>
-    <ul id="messages"></ul>
-    <form id="form" action="#">
-      <input id="input" autocomplete="off" placeholder="Type your message..." />
-      <button>Send</button>
-    </form>
-
-    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <p>Redirecting...</p>
 
     <script>
-      const socket = io("http://localhost:3000");
-      const form = document.getElementById("form");
-      const input = document.getElementById("input");
-      const messages = document.getElementById("messages");
+      const token = localStorage.getItem("token");
+      const role = localStorage.getItem("role");
 
-      // Handle form submission
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const message = input.value.trim();
-        if (message) {
-          // Emit the message to the server
-          socket.emit("chat message", message);
-          // Clear the input
-          input.value = "";
-        }
-      });
-
-      // Listen for incoming messages
-      socket.on("chat message", (msg) => {
-        const item = document.createElement("li");
-        item.textContent = msg;
-        messages.appendChild(item);
-        // Scroll to the bottom
-        messages.scrollTop = messages.scrollHeight;
-      });
+      if (!token) {
+        window.location.href = "/login";
+      } else if (role === "admin") {
+        window.location.href = "/admin";
+      } else {
+        window.location.href = "/patient";
+      }
     </script>
   </body>
 </html>

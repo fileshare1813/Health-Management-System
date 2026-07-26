@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Find a Doctor - HMS</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f3f6fb;
+        color: #1c2331;
+      }
+      .container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      .search-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .search-bar input {
+        flex: 1;
+        padding: 12px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        font-size: 1rem;
+      }
+      .doctor-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px;
+      }
+      .doctor-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+      .doctor-card h3 {
+        margin: 0 0 6px;
+      }
+      .doctor-card p {
+        margin: 4px 0;
+        font-size: 0.92rem;
+        color: #475569;
+      }
+      .rating {
+        color: #d97706;
+        font-weight: 700;
+      }
+      .book-btn {
+        margin-top: 12px;
+        display: inline-block;
+        padding: 10px 16px;
+        background: #2563eb;
+        color: white;
+        text-decoration: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      .nav {
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+      }
+      .nav a {
+        color: #2563eb;
+        text-decoration: none;
+        margin-right: 16px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="nav">
+        <a href="/patient">Book Appointment</a>
+        <a href="/my-appointments">My Appointments</a>
+        <a href="/support">Support Chat</a>
+      </div>
+      <h1>Find a Doctor</h1>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search by name..." />
+        <input
+          type="text"
+          id="specInput"
+          placeholder="Filter by specialisation..."
+        />
+      </div>
+      <div id="doctorGrid" class="doctor-grid"></div>
+    </div>
+
+    <script>
+      const doctorGrid = document.getElementById("doctorGrid");
+      const searchInput = document.getElementById("searchInput");
+      const specInput = document.getElementById("specInput");
+
+      async function loadDoctors() {
+        const params = new URLSearchParams();
+        if (searchInput.value.trim())
+          params.set("search", searchInput.value.trim());
+        if (specInput.value.trim())
+          params.set("specialisation", specInput.value.trim());
+
+        try {
+          const response = await fetch("/api/doctors?" + params.toString());
+          const data = await response.json();
+          renderDoctors(data.doctors || []);
+        } catch (err) {
+          doctorGrid.innerHTML = "<p>Could not load doctors right now.</p>";
+        }
+      }
+
+      function renderDoctors(doctors) {
+        if (!doctors.length) {
+          doctorGrid.innerHTML = "<p>No doctors found.</p>";
+          return;
+        }
+
+        doctorGrid.innerHTML = doctors
+          .map(
+            (doc) => `
+          <div class="doctor-card">
+            <h3>Dr. ${doc.name}</h3>
+            <p>${doc.specialisation} • ${doc.degree}</p>
+            <p>${doc.experience} yrs experience • Fees: ₹${doc.fees}</p>
+            <p class="rating">★ ${doc.rating ? doc.rating.toFixed(1) : "No ratings yet"}</p>
+            <a class="book-btn" href="/patient?doctorId=${doc._id}">Book Appointment</a>
+          </div>
+        `,
+          )
+          .join("");
+      }
+
+      let debounceTimer;
+      [searchInput, specInput].forEach((el) =>
+        el.addEventListener("input", () => {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(loadDoctors, 300);
+        }),
+      );
+
+      loadDoctors();
+    </script>
+  </body>
+</html>
