@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Support Chat</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f3f6fb;
+        color: #1c2331;
+      }
+      .chat-container {
+        max-width: 720px;
+        margin: 0 auto;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 24px;
+      }
+      header {
+        text-align: center;
+        margin-bottom: 18px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.9rem;
+      }
+      .join-panel {
+        display: grid;
+        gap: 10px;
+        padding: 18px;
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+        margin-bottom: 20px;
+      }
+      .join-panel label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 0.95rem;
+      }
+      .join-panel input {
+        padding: 10px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        font-size: 0.95rem;
+      }
+      .join-panel button {
+        width: fit-content;
+        padding: 10px 18px;
+        border: none;
+        background: #2563eb;
+        color: white;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 18px;
+        border-radius: 18px;
+        background: #eef2ff;
+        margin-bottom: 16px;
+      }
+      .message {
+        max-width: 85%;
+        padding: 14px 16px;
+        border-radius: 18px;
+        position: relative;
+        display: inline-flex;
+        flex-direction: column;
+        gap: 6px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      }
+      .message.self {
+        align-self: flex-end;
+        background: #2563eb;
+        color: white;
+        border-bottom-right-radius: 4px;
+      }
+      .message.other {
+        align-self: flex-start;
+        background: #ffffff;
+        color: #111827;
+        border-bottom-left-radius: 4px;
+      }
+      .message .meta {
+        font-size: 0.78rem;
+        opacity: 0.8;
+      }
+      .message .time {
+        align-self: flex-end;
+        font-size: 0.75rem;
+        opacity: 0.75;
+      }
+      .system-message {
+        align-self: center;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        color: #334155;
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1px solid #cbd5e1;
+      }
+      form {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+      }
+      form input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid #cbd5e1;
+        border-radius: 14px;
+        font-size: 1rem;
+      }
+      form button {
+        padding: 14px 22px;
+        border: none;
+        border-radius: 14px;
+        background: #2563eb;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <header>
+        <h1>Support Chat</h1>
+        <p>Use your support ID and patient ID to join the room.</p>
+      </header>
+
+      <section class="join-panel">
+        <label>
+          Support ID
+          <input
+            id="supportId"
+            type="text"
+            placeholder="Enter your support ID"
+          />
+        </label>
+        <label>
+          Patient ID
+          <input
+            id="patientId"
+            type="text"
+            placeholder="Enter the patient ID"
+          />
+        </label>
+        <button id="joinBtn" type="button">Join Patient Room</button>
+      </section>
+
+      <div id="messages" class="messages"></div>
+
+      <form id="form" action="#">
+        <input
+          id="input"
+          autocomplete="off"
+          placeholder="Type your message..."
+        />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io("http://localhost:3000");
+      const joinBtn = document.getElementById("joinBtn");
+      const supportIdInput = document.getElementById("supportId");
+      const patientIdInput = document.getElementById("patientId");
+      const form = document.getElementById("form");
+      const input = document.getElementById("input");
+      const messages = document.getElementById("messages");
+      let room = null;
+
+      joinBtn.addEventListener("click", () => {
+        const patientId = patientIdInput.value.trim();
+        const supportId = supportIdInput.value.trim();
+        if (!patientId) return alert("Enter patient id to join");
+        if (!supportId) return alert("Enter your support id");
+
+        room = `patient_${patientId}|support_${supportId}`;
+        socket.emit("joinRoom", { room, userId: supportId, role: "support" });
+        addSystemMessage(`Joined room ${room}`);
+      });
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const patientId = patientIdInput.value.trim();
+        const supportId = supportIdInput.value.trim();
+        if (!patientId || !supportId) return alert("Join the room first");
+
+        const message = input.value.trim();
+        if (!message) return;
+
+        const payload = {
+          room,
+          senderType: "support",
+          senderId: supportId,
+          senderIdentifier: supportId,
+          receiverType: "patient",
+          receiverId: patientId,
+          receiverIdentifier: patientId,
+          message,
+          metadata: {},
+        };
+
+        socket.emit("chat message", payload);
+        input.value = "";
+      });
+
+      socket.on("chat message", (chat) => {
+        renderMessage(chat, chat.senderId === supportIdInput.value.trim());
+      });
+
+      socket.on("connect", () => addSystemMessage("Connected to server"));
+      socket.on("connect_error", (err) =>
+        addSystemMessage("Connect error: " + err.message),
+      );
+
+      function renderMessage(chat, isSelf) {
+        const item = document.createElement("div");
+        item.className = `message ${isSelf ? "self" : "other"}`;
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = `${chat.senderName} • ${formatTime(chat.timestamp)}`;
+
+        const text = document.createElement("div");
+        text.textContent = chat.message;
+
+        const time = document.createElement("span");
+        time.className = "time";
+        time.textContent = formatTime(chat.timestamp);
+
+        item.appendChild(meta);
+        item.appendChild(text);
+        item.appendChild(time);
+        messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      function formatTime(value) {
+        const date = value ? new Date(value) : new Date();
+        return date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function addSystemMessage(text) {
+        const item = document.createElement("div");
+        item.className = "system-message";
+        item.textContent = text;
+        messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight;
+      }
+    </script>
+  </body>
+</html>
