@@ -83,6 +83,7 @@
         <a href="/patient">Book Appointment</a>
         <a href="/my-appointments">My Appointments</a>
         <a href="/support">Support Chat</a>
+        <a href="#" onclick="logout()">Logout</a>
       </div>
       <h1>Find a Doctor</h1>
       <div class="search-bar">
@@ -147,6 +148,16 @@
       );
 
       loadDoctors();
+
+      // ----- Logout -----
+      function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("username");
+        localStorage.removeItem("email");
+        localStorage.removeItem("role");
+        window.location.href = "/login";
+      }
     </script>
   </body>
 </html>

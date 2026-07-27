@@ -1,8 +1,9 @@
 const express = require("express");
 const { body } = require("express-validator");
 const rateLimit = require("express-rate-limit");
-const { register, login } = require("../controllers/userController");
+const { register, login, changePassword } = require("../controllers/userController");
 const validate = require("../utils/validate");
+const { authenticate } = require("../middlewares/auth");
 
 const router = express.Router();
 
@@ -35,6 +36,20 @@ router.post(
     body("password").notEmpty().withMessage("Password is required"),
   ]),
   login,
+);
+
+router.post(
+  "/change-password",
+  authenticate,
+  validate([
+    body("currentPassword")
+      .notEmpty()
+      .withMessage("Current password is required"),
+    body("newPassword")
+      .isLength({ min: 8 })
+      .withMessage("New password must be at least 8 characters"),
+  ]),
+  changePassword,
 );
 
 module.exports = router;
