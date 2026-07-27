@@ -25,14 +25,16 @@
       const role = localStorage.getItem("role");
 
       if (!token) {
-        window.location.href = "/login";
-      } else if (role === "admin") {
-        window.location.href = "/admin";
-      } else if (role === "doctor") {
-        window.location.href = "/doctor-dashboard";
-      } else {
-        window.location.href = "/patient";
-      }
+          window.location.href = "/login";
+        } else if (role === "admin") {
+          window.location.href = "/admin";
+        } else if (role === "doctor") {
+          window.location.href = "/doctor-dashboard";
+        } else if (role === "support") {
+          window.location.href = "/support";
+        } else {
+          window.location.href = "/patient";
+        }
     </script>
   </body>
 </html>

@@ -22,7 +22,7 @@ const io = socketIo(server, {
 const connectDB = require("./config/mongoose");
 const upload = require("./middlewares/upload");
 const { notFound, errorHandler } = require("./middlewares/errorHandler");
-const Chat = require("./models/chatModel");
+const registerChatSocket = require("./sockets/chatSocket");
 
 const userRoutes = require("./routes/userRoutes");
 const doctorRoutes = require("./routes/doctorRoutes");
@@ -52,92 +52,8 @@ app.post("/upload-file", upload.single("prescription"), (req, res) => {
   }
 });
 
-// Socket.io chat handler (with MongoDB persistence)
-io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
-
-  socket.on("joinRoom", async ({ room, userId, role }) => {
-    if (!room) return;
-    socket.join(room);
-    console.log(`Socket ${socket.id} (${role || "user"}) joined room ${room}`);
-
-    // Send existing chat history to the client that just joined
-    try {
-      const chat = await Chat.findOne({ chatKey: room });
-      if (chat) {
-        socket.emit("chat history", chat.messages);
-      }
-    } catch (err) {
-      console.error("Failed to load chat history:", err.message);
-    }
-  });
-
-  socket.on("chat message", async (payload) => {
-    if (typeof payload === "string") {
-      io.emit("chat message", payload);
-      return;
-    }
-
-    const {
-      room,
-      senderType,
-      senderId,
-      senderIdentifier,
-      senderName,
-      receiverType,
-      receiverId,
-      receiverIdentifier,
-      message,
-      metadata,
-    } = payload;
-
-    const chat = {
-      room,
-      senderType,
-      senderId,
-      senderIdentifier,
-      senderName: senderName || senderIdentifier,
-      receiverType,
-      receiverId,
-      receiverIdentifier,
-      message,
-      metadata: metadata || {},
-      timestamp: new Date(),
-    };
-
-    if (room) {
-      io.to(room).emit("chat message", chat);
-
-      try {
-        await Chat.findOneAndUpdate(
-          { chatKey: room },
-          {
-            $setOnInsert: { chatKey: room, room },
-            $push: {
-              messages: {
-                senderRole: senderType,
-                senderIdentifier,
-                senderName: senderName || senderIdentifier,
-                message,
-                metadata: metadata || {},
-              },
-            },
-            $set: { lastUpdated: new Date() },
-          },
-          { upsert: true, new: true },
-        );
-      } catch (err) {
-        console.error("Failed to persist chat message:", err.message);
-      }
-    } else {
-      io.emit("chat message", chat);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Socket disconnected:", socket.id);
-  });
-});
+// Socket.io chat handler — JWT authenticated, persisted to MongoDB
+registerChatSocket(io);
 
 const PORT = process.env.PORT || 3000;
 
@@ -146,7 +62,6 @@ connectDB()
     app.set("views", path.join(__dirname, "views"));
     app.set("view engine", "ejs");
 
-    // app.get("/", (req, res) => res.redirect("/login"));
     app.get("/", (req, res) => res.render("index"));
     app.get("/register", (req, res) => res.render("register"));
     app.get("/login", (req, res) => res.render("login"));
@@ -156,7 +71,8 @@ connectDB()
     app.get("/admin", (req, res) => res.render("admin"));
     app.get("/doctor-dashboard", (req, res) => res.render("doctor-dashboard"));
     app.get("/support", (req, res) => res.render("support"));
-    
+    app.get("/patient-chat", (req, res) => res.render("patient-chat"));
+    app.get("/doctor-chat", (req, res) => res.render("doctor-chat"));
 
     app.use(notFound);
     app.use(errorHandler);

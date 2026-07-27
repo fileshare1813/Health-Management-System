@@ -3,21 +3,12 @@ const bcrypt = require("bcryptjs");
 const Doctor = require("../models/doctorModel");
 const Patient = require("../models/patientModel");
 const User = require("../models/userModel");
+const Chat = require("../models/chatModel");
 
 async function createDoctor(req, res) {
   let session;
   try {
-    const {
-      name,
-      specialisation,
-      degree,
-      fees,
-      experience,
-      gender,
-      username,
-      email,
-      password,
-    } = req.body;
+    const { name, specialisation, degree, fees, experience, gender, username, email, password } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -25,42 +16,25 @@ async function createDoctor(req, res) {
       });
     }
 
-    const existingUser = await User.findOne({
-      $or: [{ username }, { email: email.toLowerCase().trim() }],
-    });
-    if (existingUser) {
-      return res.status(400).json({ error: "Username or email already in use" });
-    }
+    const existingUser = await User.findOne({ $or: [{ username }, { email: email.toLowerCase().trim() }] });
+    if (existingUser) return res.status(400).json({ error: "Username or email already in use" });
 
     session = await mongoose.startSession();
     session.startTransaction();
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({
-      username,
-      email: email.toLowerCase().trim(),
-      password: hashedPassword,
-      role: "doctor",
+      username, email: email.toLowerCase().trim(), password: hashedPassword, role: "doctor",
     });
     await user.save({ session });
 
-    const doctor = new Doctor({
-      name,
-      specialisation,
-      degree,
-      fees,
-      experience,
-      gender,
-      user: user._id,
-    });
+    const doctor = new Doctor({ name, specialisation, degree, fees, experience, gender, user: user._id });
     await doctor.save({ session });
 
     await session.commitTransaction();
     session.endSession();
 
-    return res
-      .status(201)
-      .json({ message: "Doctor created successfully", doctor });
+    return res.status(201).json({ message: "Doctor created successfully", doctor });
   } catch (err) {
     if (session && session.inTransaction()) {
       await session.abortTransaction();
@@ -74,13 +48,8 @@ async function getDoctors(req, res) {
   try {
     const { specialisation, search } = req.query;
     const filter = {};
-
-    if (specialisation) {
-      filter.specialisation = { $regex: specialisation, $options: "i" };
-    }
-    if (search) {
-      filter.name = { $regex: search, $options: "i" };
-    }
+    if (specialisation) filter.specialisation = { $regex: specialisation, $options: "i" };
+    if (search) filter.name = { $regex: search, $options: "i" };
 
     const doctors = await Doctor.find(filter).sort({ rating: -1 });
     return res.status(200).json({ doctors });
@@ -95,11 +64,7 @@ async function getDoctorById(req, res) {
       path: "feedback",
       populate: { path: "patient", select: "name" },
     });
-
-    if (!doctor) {
-      return res.status(404).json({ error: "Doctor not found" });
-    }
-
+    if (!doctor) return res.status(404).json({ error: "Doctor not found" });
     return res.status(200).json({ doctor });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -110,16 +75,49 @@ async function getMyDoctorAppointments(req, res) {
   try {
     const doctor = await Doctor.findOne({ user: req.user.id });
     if (!doctor) {
-      return res
-        .status(404)
-        .json({ error: "No doctor profile is linked to this account" });
+      return res.status(404).json({ error: "No doctor profile is linked to this account" });
     }
 
-    const appointments = await Patient.find({ doctorChoice: doctor._id }).sort({
-      createdAt: -1,
-    });
-
+    const appointments = await Patient.find({ doctorChoice: doctor._id }).sort({ createdAt: -1 });
     return res.status(200).json({ doctor, appointments });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+// List every patient this doctor can chat with (i.e. has a booked appointment)
+async function getMyChats(req, res) {
+  try {
+    const doctor = await Doctor.findOne({ user: req.user.id });
+    if (!doctor) {
+      return res.status(404).json({ error: "No doctor profile is linked to this account" });
+    }
+
+    const appointments = await Patient.find({ doctorChoice: doctor._id }).select("name email");
+
+    // Match each appointment's email back to a logged-in User account (patients booked without
+    // an account, e.g. via /add-patient, won't have a chat-capable User and are skipped here)
+    const uniqueEmails = [...new Set(appointments.map((a) => a.email))];
+    const users = await User.find({ email: { $in: uniqueEmails }, role: "patient" });
+
+    const chats = [];
+    for (const user of users) {
+      const room = `doctor_${doctor._id}_patient_${user._id}`;
+      let chat = await Chat.findOne({ room }).select("-messages");
+      if (!chat) {
+        chat = await Chat.create({
+          chatKey: room,
+          room,
+          type: "doctor",
+          patient: { id: user._id, identifier: user.username, name: user.username },
+          doctor: { id: req.user.id, identifier: doctor.name, name: doctor.name },
+          status: "open",
+        });
+      }
+      chats.push(chat);
+    }
+
+    return res.status(200).json({ chats });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -130,4 +128,5 @@ module.exports = {
   getDoctors,
   getDoctorById,
   getMyDoctorAppointments,
+  getMyChats,
 };

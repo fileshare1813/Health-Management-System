@@ -67,7 +67,7 @@
       <div class="nav">
         <a href="/patient">Book Appointment</a>
         <a href="/doctors">Find a Doctor</a>
-        <a href="/support">Support Chat</a>
+        <a href="/patient-chat">Support Chat</a>
         <a href="#" onclick="logout()">Logout</a>
       </div>
       <h1>My Appointments</h1>
@@ -116,7 +116,14 @@
               <p>Slot: ${a.bookedSlot}</p>
               <p>Ailment: ${a.ailment}</p>
             </div>
-            <button class="cancel-btn" onclick="cancelAppointment('${a._id}')">Cancel</button>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              ${
+                a.doctorChoice
+                  ? `<a class="cancel-btn" style="background:#2563eb; text-align:center; text-decoration:none;" href="/doctor-chat?doctorId=${a.doctorChoice._id}">Message Doctor</a>`
+                  : ""
+              }
+              <button class="cancel-btn" onclick="cancelAppointment('${a._id}')">Cancel</button>
+            </div>
           </div>
         `,
           )

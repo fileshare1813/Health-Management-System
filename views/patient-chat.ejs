@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Support Chat - HMS</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f3f6fb;
+        color: #1c2331;
+      }
+      .chat-container {
+        max-width: 720px;
+        margin: 0 auto;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      .nav {
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+      }
+      .nav a {
+        color: #2563eb;
+        text-decoration: none;
+        margin-right: 16px;
+        font-weight: 600;
+      }
+      header {
+        text-align: center;
+        margin-bottom: 18px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.9rem;
+      }
+      header p {
+        color: #64748b;
+      }
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 18px;
+        border-radius: 18px;
+        background: #eef2ff;
+        margin-bottom: 16px;
+        min-height: 300px;
+      }
+      .message {
+        max-width: 85%;
+        padding: 14px 16px;
+        border-radius: 18px;
+        display: inline-flex;
+        flex-direction: column;
+        gap: 6px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      }
+      .message.self {
+        align-self: flex-end;
+        background: #2563eb;
+        color: white;
+        border-bottom-right-radius: 4px;
+      }
+      .message.other {
+        align-self: flex-start;
+        background: #ffffff;
+        color: #111827;
+        border-bottom-left-radius: 4px;
+      }
+      .message .meta {
+        font-size: 0.78rem;
+        opacity: 0.8;
+      }
+      .system-message {
+        align-self: center;
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        color: #334155;
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1px solid #cbd5e1;
+      }
+      form {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+      }
+      form input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid #cbd5e1;
+        border-radius: 14px;
+        font-size: 1rem;
+        box-sizing: border-box;
+      }
+      form button {
+        padding: 14px 22px;
+        border: none;
+        border-radius: 14px;
+        background: #2563eb;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .blocked {
+        text-align: center;
+        margin-top: 60px;
+        color: #64748b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="nav">
+        <a href="/patient">Book Appointment</a>
+        <a href="/doctors">Find a Doctor</a>
+        <a href="/my-appointments">My Appointments</a>
+        <a href="#" onclick="logout()">Logout</a>
+      </div>
+
+      <header>
+        <h1>Support Chat</h1>
+        <p>Chat directly with our support team.</p>
+      </header>
+
+      <div id="blocked" class="blocked" style="display: none">
+        Please <a href="/login">login</a> to chat with support.
+      </div>
+
+      <div id="chatArea" style="display: none">
+        <div id="messages" class="messages"></div>
+        <form id="form">
+          <input id="input" autocomplete="off" placeholder="Type your message..." />
+          <button type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        document.getElementById("blocked").style.display = "block";
+      } else {
+        document.getElementById("chatArea").style.display = "block";
+        init();
+      }
+
+      let socket;
+      let room = null;
+
+      async function init() {
+        try {
+          const response = await fetch("/api/patients/my-chat", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Could not start chat");
+
+          room = data.chat.room;
+
+          socket = io(window.location.origin, { auth: { token } });
+
+          socket.on("connect", () => {
+            socket.emit("joinRoom", { room });
+          });
+
+          socket.on("connect_error", (err) => addSystemMessage("Connect error: " + err.message));
+          socket.on("chat history", (history) => history.forEach((m) => renderMessage(m)));
+          socket.on("chat message", (m) => renderMessage(m));
+          socket.on("system message", (sysMsg) => addSystemMessage(sysMsg.text));
+          socket.on("error message", (text) => addSystemMessage(text));
+        } catch (err) {
+          addSystemMessage(err.message);
+        }
+      }
+
+      const form = document.getElementById("form");
+      const input = document.getElementById("input");
+      const messages = document.getElementById("messages");
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const message = input.value.trim();
+        if (!message || !room) return;
+
+        socket.emit("chat message", { room, message });
+        input.value = "";
+      });
+
+      function renderMessage(chat) {
+        const isSelf = chat.senderRole === "patient";
+        const item = document.createElement("div");
+        item.className = `message ${isSelf ? "self" : "other"}`;
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = `${chat.senderName || chat.senderIdentifier} • ${formatTime(chat.createdAt)}`;
+
+        const text = document.createElement("div");
+        text.textContent = chat.message;
+
+        item.appendChild(meta);
+        item.appendChild(text);
+        messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      function formatTime(value) {
+        const date = value ? new Date(value) : new Date();
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      }
+
+      function addSystemMessage(text) {
+        const item = document.createElement("div");
+        item.className = "system-message";
+        item.textContent = text;
+        messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("username");
+        localStorage.removeItem("email");
+        localStorage.removeItem("role");
+        window.location.href = "/login";
+      }
+    </script>
+  </body>
+</html>

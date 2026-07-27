@@ -13,10 +13,6 @@ const SupportSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    password: {
-      type: String,
-      required: true,
-    },
     role: {
       type: String,
       default: "support",
@@ -24,6 +20,12 @@ const SupportSchema = new mongoose.Schema(
     active: {
       type: Boolean,
       default: true,
+    },
+    // Login/auth is handled by the User model — this just links the profile
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      required: false,
     },
   },
   { timestamps: true },
