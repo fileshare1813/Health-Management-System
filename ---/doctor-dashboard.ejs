@@ -4,30 +4,278 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Doctor Dashboard - HMS</title>
-    <link rel="stylesheet" href="/css/glass.css" />
     <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f3f6fb;
+        color: #1c2331;
+      }
+      .container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .top-bar a.logout-link {
+        color: #2563eb;
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      h1 {
+        margin-top: 0;
+      }
       .doctor-info {
-        background: var(--glass-bg-strong);
-        backdrop-filter: blur(18px);
-        border: 1px solid var(--glass-border);
-        border-radius: var(--radius-md);
+        background: #fff;
+        border-radius: 16px;
         padding: 18px;
         margin-bottom: 20px;
-        box-shadow: var(--glass-shadow);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
       }
       .doctor-info h2 {
         margin: 0 0 6px;
       }
       .doctor-info p {
         margin: 4px 0;
-        opacity: 0.85;
+        color: #475569;
+      }
+      .profile-box {
+        background: #fff;
+        padding: 16px 20px;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+      .profile-box p {
+        margin: 2px 0;
+      }
+      .profile-box button {
+        margin-top: 10px;
+        padding: 8px 14px;
+        border: none;
+        border-radius: 8px;
+        background: #64748b;
+        color: #fff;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .pwd-section {
+        display: none;
+        background: #fff;
+        padding: 18px 20px;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+      .pwd-section h3 {
+        margin-top: 0;
+      }
+      .pwd-section .grid {
+        display: grid;
+        gap: 16px;
+      }
+      .pwd-section label {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-weight: 600;
+      }
+      .pwd-field-wrapper {
+        position: relative;
+      }
+      .pwd-field-wrapper input {
+        width: 100%;
+        padding: 12px 40px 12px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        font-size: 1rem;
+        box-sizing: border-box;
+      }
+      .pwd-toggle-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        user-select: none;
+      }
+      .pwd-section button[type="submit"] {
+        padding: 12px 18px;
+        border: none;
+        border-radius: 12px;
+        background: #2563eb;
+        color: white;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .pwd-feedback {
+        margin-top: 12px;
+        display: none;
+        padding: 10px 14px;
+        border-radius: 10px;
+      }
+      .section-title {
+        font-size: 1.2rem;
+        margin: 28px 0 12px;
+      }
+      .appointment-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+      .appointment-card h3 {
+        margin: 0 0 6px;
+      }
+      .appointment-card p {
+        margin: 3px 0;
+        font-size: 0.9rem;
+        color: #475569;
+      }
+      .appointment-card a {
+        color: #2563eb;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .chat-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 16px 18px;
+        margin-bottom: 12px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .chat-card .name {
+        font-weight: 700;
+      }
+      .chat-card .status {
+        font-size: 0.78rem;
+        color: #64748b;
+        text-transform: capitalize;
+      }
+      .chat-card button {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 10px;
+        background: #2563eb;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .empty,
+      .blocked {
+        text-align: center;
+        color: #64748b;
+        margin-top: 60px;
+      }
+
+      /* ---- Chat panel (modal-style overlay) ---- */
+      #chatOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+      }
+      #chatPanel {
+        background: #fff;
+        width: 92%;
+        max-width: 480px;
+        height: 80vh;
+        border-radius: 18px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #chatPanel .chat-header {
+        padding: 14px 18px;
+        background: #2563eb;
+        color: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+      }
+      #chatPanel .chat-header span.close-btn {
+        cursor: pointer;
+        font-weight: 400;
+        font-size: 1.3rem;
+        line-height: 1;
+      }
+      #chatMessages {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 16px;
+        background: #eef2ff;
+      }
+      .message {
+        max-width: 82%;
+        padding: 12px 14px;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      }
+      .message.self {
+        align-self: flex-end;
+        background: #2563eb;
+        color: white;
+      }
+      .message.other {
+        align-self: flex-start;
+        background: #fff;
+      }
+      .message .meta {
+        font-size: 0.72rem;
+        opacity: 0.8;
+        margin-bottom: 4px;
+      }
+      .system-message {
+        align-self: center;
+        font-size: 0.78rem;
+        color: #64748b;
+      }
+      #chatForm {
+        display: flex;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border-top: 1px solid #e2e8f0;
+      }
+      #chatForm input {
+        flex: 1;
+        padding: 12px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+      }
+      #chatForm button {
+        padding: 12px 18px;
+        border: none;
+        border-radius: 12px;
+        background: #2563eb;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
       }
     </style>
   </head>
   <body>
-    <div class="container" style="max-width: 800px; margin: 40px auto; padding: 0 20px;">
+    <div class="container">
       <div class="top-bar">
-        <h1 style="color: #fff;">My Appointments</h1>
+        <h1>My Appointments</h1>
         <a href="#" class="logout-link" onclick="logout()">Logout</a>
       </div>
 
@@ -69,7 +317,7 @@
       <div id="list"></div>
 
       <!-- Patient Chats -->
-      <h2 class="section-title" style="color: #fff;">Patient Messages</h2>
+      <h2 class="section-title">Patient Messages</h2>
       <div id="chatList"></div>
     </div>
 
@@ -336,12 +584,14 @@
             throw new Error(data.error || "Failed to change password");
 
           pwdFeedback.textContent = "Password updated successfully!";
-          pwdFeedback.className = "pwd-feedback success";
+          pwdFeedback.style.background = "#ecfdf5";
+          pwdFeedback.style.color = "#166534";
           pwdFeedback.style.display = "block";
           changePwdForm.reset();
         } catch (err) {
           pwdFeedback.textContent = err.message;
-          pwdFeedback.className = "pwd-feedback error";
+          pwdFeedback.style.background = "#fef2f2";
+          pwdFeedback.style.color = "#b91c1c";
           pwdFeedback.style.display = "block";
         }
       });

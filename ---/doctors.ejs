@@ -4,17 +4,88 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Find a Doctor - HMS</title>
-    <link rel="stylesheet" href="/css/glass.css" />
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f3f6fb;
+        color: #1c2331;
+      }
+      .container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      .search-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .search-bar input {
+        flex: 1;
+        padding: 12px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        font-size: 1rem;
+      }
+      .doctor-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px;
+      }
+      .doctor-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+      .doctor-card h3 {
+        margin: 0 0 6px;
+      }
+      .doctor-card p {
+        margin: 4px 0;
+        font-size: 0.92rem;
+        color: #475569;
+      }
+      .rating {
+        color: #d97706;
+        font-weight: 700;
+      }
+      .book-btn {
+        margin-top: 12px;
+        display: inline-block;
+        padding: 10px 16px;
+        background: #2563eb;
+        color: white;
+        text-decoration: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      .nav {
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+      }
+      .nav a {
+        color: #2563eb;
+        text-decoration: none;
+        margin-right: 16px;
+        font-weight: 600;
+      }
+    </style>
   </head>
   <body>
-    <div class="container" style="max-width: 900px; margin: 40px auto; padding: 0 20px;">
+    <div class="container">
       <div class="nav">
         <a href="/patient">Book Appointment</a>
         <a href="/my-appointments">My Appointments</a>
         <a href="/patient-chat">Support Chat</a>
         <a href="#" onclick="logout()">Logout</a>
       </div>
-      <h1 style="color: #fff;">Find a Doctor</h1>
+      <h1>Find a Doctor</h1>
       <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Search by name..." />
         <input
@@ -43,13 +114,13 @@
           const data = await response.json();
           renderDoctors(data.doctors || []);
         } catch (err) {
-          doctorGrid.innerHTML = "<p style='color:#fff;'>Could not load doctors right now.</p>";
+          doctorGrid.innerHTML = "<p>Could not load doctors right now.</p>";
         }
       }
 
       function renderDoctors(doctors) {
         if (!doctors.length) {
-          doctorGrid.innerHTML = "<p style='color:#fff;'>No doctors found.</p>";
+          doctorGrid.innerHTML = "<p>No doctors found.</p>";
           return;
         }
 

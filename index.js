@@ -34,6 +34,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
+// Serves /public/css/glass.css (shared glassmorphism design system) to every EJS view
+app.use(express.static(path.join(__dirname, "public")));
+
 app.use("/api/users", userRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/patients", patientRoutes);
